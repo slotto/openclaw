@@ -72,10 +72,17 @@ export type { WizardPrompter } from "../wizard/prompts.js";
 export type { ContextEngineFactory } from "../context-engine/registry.js";
 export type { DiagnosticEventPayload } from "../infra/diagnostic-events.js";
 export type {
+  AssembleResult,
+  BootstrapResult,
+  CompactResult,
   ContextEngine,
   ContextEngineInfo,
+  IngestBatchResult,
+  IngestResult,
   ContextEngineMaintenanceResult,
   ContextEngineRuntimeContext,
+  SubagentEndReason,
+  SubagentSpawnPreparation,
   TranscriptRewriteReplacement,
   TranscriptRewriteRequest,
   TranscriptRewriteResult,
