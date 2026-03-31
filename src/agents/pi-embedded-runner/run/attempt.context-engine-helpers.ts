@@ -1,5 +1,6 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { ContextEngine, ContextEngineRuntimeContext } from "../../../context-engine/types.js";
+import { estimateMessagesTokens } from "../../compaction.js";
 
 export type AttemptContextEngine = ContextEngine;
 
@@ -104,6 +105,9 @@ export async function finalizeAttemptContextEngineTurn(params: {
 
   if (typeof params.contextEngine.afterTurn === "function") {
     try {
+      // Calculate current token count from live session messages
+      const currentTokenCount = estimateMessagesTokens(params.messagesSnapshot);
+
       await params.contextEngine.afterTurn({
         sessionId: params.sessionIdUsed,
         sessionKey: params.sessionKey,
@@ -111,7 +115,10 @@ export async function finalizeAttemptContextEngineTurn(params: {
         messages: params.messagesSnapshot,
         prePromptMessageCount: params.prePromptMessageCount,
         tokenBudget: params.tokenBudget,
-        runtimeContext: params.runtimeContext,
+        runtimeContext: {
+          ...params.runtimeContext,
+          currentTokenCount,
+        },
       });
     } catch (afterTurnErr) {
       postTurnFinalizationSucceeded = false;
