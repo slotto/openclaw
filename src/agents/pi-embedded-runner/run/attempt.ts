@@ -1689,6 +1689,8 @@ export async function runEmbeddedAttempt(
             workspaceDir: effectiveWorkspace,
             agentDir,
           });
+          // Add usage totals to runtime context for LCM token counting
+          (afterTurnRuntimeContext as any).usageTotals = getUsageTotals();
           await finalizeAttemptContextEngineTurn({
             contextEngine: params.contextEngine,
             promptError: Boolean(promptError),
