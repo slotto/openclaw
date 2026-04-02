@@ -478,6 +478,14 @@ function extractLatestUsageFromTranscriptChunk(
             : undefined;
       const usage = normalizeUsage(usageRaw);
       const totalTokens = resolvePositiveUsageNumber(deriveSessionTotalTokens({ usage }));
+      
+      // Debug: log what we're calculating
+      try {
+        require('fs').appendFileSync('/tmp/tui-token-calc.log',
+          `${new Date().toISOString()} usage=${JSON.stringify(usage)} totalTokens=${totalTokens}
+`);
+      } catch {}
+      
       const costUsd = extractTranscriptUsageCost(usageRaw);
       const modelProvider =
         typeof message.provider === "string"

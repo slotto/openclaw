@@ -648,6 +648,14 @@ export async function runTui(opts: TuiOptions) {
         : sessionInfo.model
       : "unknown";
     const tokens = formatTokens(sessionInfo.totalTokens ?? null, sessionInfo.contextTokens ?? null);
+    
+    // Debug: log what TUI is displaying
+    try {
+      require('fs').appendFileSync('/tmp/tui-display.log',
+        `${new Date().toISOString()} TUI displaying: totalTokens=${sessionInfo.totalTokens} contextTokens=${sessionInfo.contextTokens}
+`);
+    } catch {}
+    
     const think = sessionInfo.thinkingLevel ?? "off";
     const fast = sessionInfo.fastMode === true;
     const verbose = sessionInfo.verboseLevel ?? "off";
