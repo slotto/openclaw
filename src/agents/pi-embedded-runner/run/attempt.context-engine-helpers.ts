@@ -109,13 +109,12 @@ export async function finalizeAttemptContextEngineTurn(params: {
       // Extract actual prompt token count from last assistant message's usage
       let currentTokenCount = estimateMessagesTokens(params.messagesSnapshot);
       
-      // Debug: log what we're looking for
-      const fs = require('fs');
+      // Debug: simple marker
       try {
-        fs.appendFileSync('/tmp/afterturn-debug.log',
-          `${new Date().toISOString()} messagesSnapshot.length=${params.messagesSnapshot.length}
-`);
-      } catch {}
+        require('fs').appendFileSync('/tmp/afterturn-reached.log', `${new Date().toISOString()} REACHED\n`);
+      } catch (e) {
+        console.error('Failed to write debug log:', e);
+      }
       
       // Find the last assistant message with usage data
       for (let i = params.messagesSnapshot.length - 1; i >= 0; i--) {
