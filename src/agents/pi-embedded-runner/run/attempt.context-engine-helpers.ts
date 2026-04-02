@@ -109,14 +109,34 @@ export async function finalizeAttemptContextEngineTurn(params: {
       // Extract actual prompt token count from last assistant message's usage
       let currentTokenCount = estimateMessagesTokens(params.messagesSnapshot);
       
+      // Debug: log what we're looking for
+      const fs = require('fs');
+      try {
+        fs.appendFileSync('/tmp/afterturn-debug.log',
+          `${new Date().toISOString()} messagesSnapshot.length=${params.messagesSnapshot.length}
+`);
+      } catch {}
+      
       // Find the last assistant message with usage data
       for (let i = params.messagesSnapshot.length - 1; i >= 0; i--) {
         const msg = params.messagesSnapshot[i];
-        if (msg.role === 'assistant' && msg.usage) {
-          const derived = deriveSessionTotalTokens({ usage: msg.usage as any });
-          if (typeof derived === 'number') {
-            currentTokenCount = derived;
-            break;
+        if (msg.role === 'assistant') {
+          try {
+            fs.appendFileSync('/tmp/afterturn-debug.log',
+              `${new Date().toISOString()} Found assistant at ${i}, hasUsage=${!!msg.usage}
+`);
+          } catch {}
+          if (msg.usage) {
+            const derived = deriveSessionTotalTokens({ usage: msg.usage as any });
+            try {
+              fs.appendFileSync('/tmp/afterturn-debug.log',
+                `${new Date().toISOString()} derived=${derived} from usage=${JSON.stringify(msg.usage)}
+`);
+            } catch {}
+            if (typeof derived === 'number') {
+              currentTokenCount = derived;
+              break;
+            }
           }
         }
       }
