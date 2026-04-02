@@ -480,6 +480,7 @@ function extractLatestUsageFromTranscriptChunk(
       const totalTokens = resolvePositiveUsageNumber(deriveSessionTotalTokens({ usage }));
       
       // Debug: log what we're calculating
+      console.log(`[DEBUG] usage=${JSON.stringify(usage)} totalTokens=${totalTokens}`);
       try {
         require('fs').appendFileSync('/tmp/tui-token-calc.log',
           `${new Date().toISOString()} usage=${JSON.stringify(usage)} totalTokens=${totalTokens}
