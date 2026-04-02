@@ -106,19 +106,42 @@ export async function finalizeAttemptContextEngineTurn(params: {
 
   if (typeof params.contextEngine.afterTurn === "function") {
     try {
-      // Extract actual prompt token count from last assistant message's usage
+      // Extract actual prompt token count from session transcript
+      // The transcript contains the assistant message with usage.input_tokens
       let currentTokenCount = estimateMessagesTokens(params.messagesSnapshot);
       
-      // Find the last assistant message with usage data
-      for (let i = params.messagesSnapshot.length - 1; i >= 0; i--) {
-        const msg = params.messagesSnapshot[i];
-        if (msg.role === 'assistant' && msg.usage) {
-          const derived = deriveSessionTotalTokens({ usage: msg.usage as any });
-          if (typeof derived === 'number') {
-            currentTokenCount = derived;
-            break;
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        
+        // Find the transcript file (same directory as sessionFile, different extension)
+        const sessionDir = path.dirname(params.sessionFile);
+        const sessionId = path.basename(params.sessionFile, '.json');
+        const transcriptPath = path.join(sessionDir, '..', 'transcripts', `${sessionId}.md`);
+        
+        if (fs.existsSync(transcriptPath)) {
+          const transcript = fs.readFileSync(transcriptPath, 'utf8');
+          const lines = transcript.split('\n').filter(l => l.trim());
+          
+          // Find the last assistant message with usage
+          for (let i = lines.length - 1; i >= 0; i--) {
+            try {
+              const parsed = JSON.parse(lines[i]);
+              const message = parsed.message || parsed;
+              if (message.role === 'assistant' && message.usage) {
+                const derived = deriveSessionTotalTokens({ usage: message.usage as any });
+                if (typeof derived === 'number') {
+                  currentTokenCount = derived;
+                  break;
+                }
+              }
+            } catch {
+              // Skip non-JSON lines
+            }
           }
         }
+      } catch (err) {
+        // Fallback to snapshot if transcript read fails
       }
 
       await params.contextEngine.afterTurn({
