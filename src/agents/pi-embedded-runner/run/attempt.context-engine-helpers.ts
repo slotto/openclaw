@@ -105,15 +105,21 @@ export async function finalizeAttemptContextEngineTurn(params: {
 
   if (typeof params.contextEngine.afterTurn === "function") {
     try {
-      // Calculate current token count from live session messages
-      const messageTokens = estimateMessagesTokens(params.messagesSnapshot);
-
-      // Estimate full context including system prompts, tools, and overhead
-      // TUI sessions have much higher overhead (~100-120%) than chat (~25%)
-      const isTuiSession = params.sessionKey?.endsWith(':main') ?? false;
-      const overheadMultiplier = isTuiSession ? 1.2 : 0.3;
-      const estimatedOverhead = Math.ceil(messageTokens * overheadMultiplier);
-      const currentTokenCount = messageTokens + estimatedOverhead;
+      // Calculate ACTUAL current token count from full session file
+      // (includes all messages, not just current snapshot)
+      let currentTokenCount = estimateMessagesTokens(params.messagesSnapshot);
+      
+      try {
+        const fs = require('fs');
+        const sessionData = JSON.parse(fs.readFileSync(params.sessionFile, 'utf8'));
+        if (Array.isArray(sessionData.messages)) {
+          // Estimate full context: all messages in session file
+          currentTokenCount = estimateMessagesTokens(sessionData.messages);
+        }
+      } catch (err) {
+        // Fallback: use snapshot if file read fails
+        console.warn(`Failed to read session file for token count: ${String(err)}`);
+      }
 
       await params.contextEngine.afterTurn({
         sessionId: params.sessionIdUsed,
