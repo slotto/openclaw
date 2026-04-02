@@ -114,10 +114,8 @@ export async function finalizeAttemptContextEngineTurn(params: {
         const fs = require('fs');
         const path = require('path');
         
-        // Find the transcript file (same directory as sessionFile, different extension)
-        const sessionDir = path.dirname(params.sessionFile);
-        const sessionId = path.basename(params.sessionFile, '.jsonl');
-        const transcriptPath = path.join(sessionDir, '..', 'transcripts', `${sessionId}.md`);
+        // Find the session file (which contains the transcript)
+        const transcriptPath = params.sessionFile;
         
         // Debug logging
         fs.appendFileSync('/tmp/transcript-debug.log',
