@@ -109,8 +109,10 @@ export async function finalizeAttemptContextEngineTurn(params: {
       const messageTokens = estimateMessagesTokens(params.messagesSnapshot);
 
       // Estimate full context including system prompts, tools, and overhead
-      // Conservative estimate: add 25% overhead for non-message context
-      const estimatedOverhead = Math.ceil(messageTokens * 0.25);
+      // TUI sessions have much higher overhead (~100-120%) than chat (~25%)
+      const isTuiSession = params.sessionKey?.endsWith(':main') ?? false;
+      const overheadMultiplier = isTuiSession ? 1.2 : 0.3;
+      const estimatedOverhead = Math.ceil(messageTokens * overheadMultiplier);
       const currentTokenCount = messageTokens + estimatedOverhead;
 
       await params.contextEngine.afterTurn({
