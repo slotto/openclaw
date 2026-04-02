@@ -132,17 +132,21 @@ exists=${fs.existsSync(transcriptPath)}
             `${new Date().toISOString()} lines=${lines.length}
 `);
           
-          // Find the last assistant message with usage
+          // Find the last assistant message with usage (skip tool calls)
           for (let i = lines.length - 1; i >= 0; i--) {
             try {
               const parsed = JSON.parse(lines[i]);
               const message = parsed.message || parsed;
               if (message.role === 'assistant' && message.usage && typeof message.usage.input === 'number') {
-                currentTokenCount = message.usage.input;
-                fs.appendFileSync('/tmp/transcript-debug.log',
-                  `${new Date().toISOString()} found usage.input=${message.usage.input}
+                // Skip tool call messages - only use text responses
+                const hasTextContent = message.content?.some((c: any) => c.type === 'text');
+                if (hasTextContent) {
+                  currentTokenCount = message.usage.input;
+                  fs.appendFileSync('/tmp/transcript-debug.log',
+                    `${new Date().toISOString()} found usage.input=${message.usage.input}
 `);
-                break;
+                  break;
+                }
               }
             } catch {
               // Skip non-JSON lines
