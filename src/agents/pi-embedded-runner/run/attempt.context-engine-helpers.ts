@@ -1,6 +1,7 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { ContextEngine, ContextEngineRuntimeContext } from "../../../context-engine/types.js";
 import { estimateMessagesTokens } from "../../compaction.js";
+import { deriveSessionTotalTokens } from "../../../agents/usage.js";
 
 export type AttemptContextEngine = ContextEngine;
 
@@ -105,19 +106,19 @@ export async function finalizeAttemptContextEngineTurn(params: {
 
   if (typeof params.contextEngine.afterTurn === "function") {
     try {
-      // Calculate current token count from session file size
-      // Session file includes messages + metadata; approximate token count
+      // Extract actual prompt token count from last assistant message's usage
       let currentTokenCount = estimateMessagesTokens(params.messagesSnapshot);
       
-      try {
-        const fs = require('fs');
-        const stats = fs.statSync(params.sessionFile);
-        // Rough estimate: 1 byte ≈ 0.3 tokens (conservative)
-        // This accounts for JSON overhead but approximates full context
-        currentTokenCount = Math.floor(stats.size * 0.3);
-      } catch (err) {
-        // Fallback: use snapshot if file read fails
-        console.warn(`Failed to read session file for token count: ${String(err)}`);
+      // Find the last assistant message with usage data
+      for (let i = params.messagesSnapshot.length - 1; i >= 0; i--) {
+        const msg = params.messagesSnapshot[i];
+        if (msg.role === 'assistant' && msg.usage) {
+          const derived = deriveSessionTotalTokens({ usage: msg.usage as any });
+          if (typeof derived === 'number') {
+            currentTokenCount = derived;
+            break;
+          }
+        }
       }
 
       await params.contextEngine.afterTurn({
