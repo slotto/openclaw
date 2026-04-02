@@ -119,9 +119,20 @@ export async function finalizeAttemptContextEngineTurn(params: {
         const sessionId = path.basename(params.sessionFile, '.jsonl');
         const transcriptPath = path.join(sessionDir, '..', 'transcripts', `${sessionId}.md`);
         
+        // Debug logging
+        fs.appendFileSync('/tmp/transcript-debug.log',
+          `${new Date().toISOString()} sessionFile=${params.sessionFile}
+transcriptPath=${transcriptPath}
+exists=${fs.existsSync(transcriptPath)}
+`);
+        
         if (fs.existsSync(transcriptPath)) {
           const transcript = fs.readFileSync(transcriptPath, 'utf8');
           const lines = transcript.split('\n').filter(l => l.trim());
+          
+          fs.appendFileSync('/tmp/transcript-debug.log',
+            `${new Date().toISOString()} lines=${lines.length}
+`);
           
           // Find the last assistant message with usage
           for (let i = lines.length - 1; i >= 0; i--) {
@@ -130,6 +141,9 @@ export async function finalizeAttemptContextEngineTurn(params: {
               const message = parsed.message || parsed;
               if (message.role === 'assistant' && message.usage && typeof message.usage.input === 'number') {
                 currentTokenCount = message.usage.input;
+                fs.appendFileSync('/tmp/transcript-debug.log',
+                  `${new Date().toISOString()} found usage.input=${message.usage.input}
+`);
                 break;
               }
             } catch {
@@ -139,6 +153,9 @@ export async function finalizeAttemptContextEngineTurn(params: {
         }
       } catch (err) {
         // Fallback to snapshot if transcript read fails
+        fs.appendFileSync('/tmp/transcript-debug.log',
+          `${new Date().toISOString()} error: ${String(err)}
+`);
       }
 
       await params.contextEngine.afterTurn({
