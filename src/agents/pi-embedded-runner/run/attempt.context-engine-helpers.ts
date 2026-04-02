@@ -105,17 +105,16 @@ export async function finalizeAttemptContextEngineTurn(params: {
 
   if (typeof params.contextEngine.afterTurn === "function") {
     try {
-      // Calculate ACTUAL current token count from full session file
-      // (includes all messages, not just current snapshot)
+      // Calculate current token count from session file size
+      // Session file includes messages + metadata; approximate token count
       let currentTokenCount = estimateMessagesTokens(params.messagesSnapshot);
       
       try {
         const fs = require('fs');
-        const sessionData = JSON.parse(fs.readFileSync(params.sessionFile, 'utf8'));
-        if (Array.isArray(sessionData.messages)) {
-          // Estimate full context: all messages in session file
-          currentTokenCount = estimateMessagesTokens(sessionData.messages);
-        }
+        const stats = fs.statSync(params.sessionFile);
+        // Rough estimate: 1 byte ≈ 0.3 tokens (conservative)
+        // This accounts for JSON overhead but approximates full context
+        currentTokenCount = Math.floor(stats.size * 0.3);
       } catch (err) {
         // Fallback: use snapshot if file read fails
         console.warn(`Failed to read session file for token count: ${String(err)}`);
