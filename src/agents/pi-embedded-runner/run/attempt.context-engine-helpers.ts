@@ -106,7 +106,12 @@ export async function finalizeAttemptContextEngineTurn(params: {
   if (typeof params.contextEngine.afterTurn === "function") {
     try {
       // Calculate current token count from live session messages
-      const currentTokenCount = estimateMessagesTokens(params.messagesSnapshot);
+      const messageTokens = estimateMessagesTokens(params.messagesSnapshot);
+
+      // Estimate full context including system prompts, tools, and overhead
+      // Conservative estimate: add 25% overhead for non-message context
+      const estimatedOverhead = Math.ceil(messageTokens * 0.25);
+      const currentTokenCount = messageTokens + estimatedOverhead;
 
       await params.contextEngine.afterTurn({
         sessionId: params.sessionIdUsed,
