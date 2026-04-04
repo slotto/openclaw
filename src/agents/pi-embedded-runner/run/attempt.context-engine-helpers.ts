@@ -3,6 +3,43 @@ import type { ContextEngine, ContextEngineRuntimeContext } from "../../../contex
 import { estimateMessagesTokens } from "../../compaction.js";
 import { deriveSessionTotalTokens } from "../../../agents/usage.js";
 
+/**
+ * Extract participants (agents + humans) from a session key.
+ * Format: agent:agentId:provider:chatType:channelOrUserId[:thread:threadId]
+ * 
+ * Returns array of participant IDs:
+ * - For channels: [agentId] (TODO: query runtime for other agents in channel)
+ * - For DMs: [agentId, userId]
+ * - For groups: [agentId] (TODO: extract group members)
+ */
+function extractParticipantsFromSessionKey(sessionKey?: string): string[] {
+  if (!sessionKey) {
+    return [];
+  }
+
+  const parts = sessionKey.split(':');
+  if (parts.length < 2 || parts[0] !== 'agent') {
+    return [];
+  }
+
+  const agentId = parts[1]; // e.g., "main", "nova"
+  const participants = [agentId];
+
+  // For direct messages, extract the user ID
+  // Format: agent:agentId:provider:direct:userId
+  if (parts.length >= 5 && parts[3] === 'direct') {
+    const userId = parts[4];
+    if (userId && userId !== agentId) {
+      participants.push(userId);
+    }
+  }
+
+  // TODO: For channels/groups, query runtime to get all agents with sessions for this channel
+  // TODO: Query messaging provider API to get human members
+
+  return participants;
+}
+
 export type AttemptContextEngine = ContextEngine;
 
 export async function runAttemptContextEngineBootstrap(params: {
@@ -121,6 +158,9 @@ export async function finalizeAttemptContextEngineTurn(params: {
         }
       }
 
+      // Extract participants for cross-channel continuity
+      const participants = extractParticipantsFromSessionKey(params.sessionKey);
+
       await params.contextEngine.afterTurn({
         sessionId: params.sessionIdUsed,
         sessionKey: params.sessionKey,
@@ -128,6 +168,7 @@ export async function finalizeAttemptContextEngineTurn(params: {
         messages: params.messagesSnapshot,
         prePromptMessageCount: params.prePromptMessageCount,
         tokenBudget: params.tokenBudget,
+        participants,
         runtimeContext: {
           ...params.runtimeContext,
           currentTokenCount,
